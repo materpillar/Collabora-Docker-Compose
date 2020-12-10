@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+
+    proxy:
+        image: nginx
+        networks:
+          - collabora_network
+        ports:
+        #  - 80:80
+          - ${HOST_PORT}:16492
+        environment:
+          - NGINX_ENVSUBST_TEMPLATE_SUFFIX=.template
+          - HOST_DOMAIN
+        volumes:
+          - ./collabora-terminate-ssl.conf.template:/etc/nginx/templates/collabora-terminate-ssl.conf.template:ro
+          - ${SSL_KEY_FILE}:/ssl/ssl_certificate_key:ro
+          - ${SSL_CERT_FILE}:/ssl/ssl_certificate:ro
+          - /etc/localtime:/etc/localtime:ro
+        restart: unless-stopped
+    app:
+        image: collabora/code
+        networks:
+          - collabora_network
+        environment:
+          - domain=${TRUST_DOMAIN}
+          - dictionaries=${COLLABORA_DICTIONARIES}
+          - extra_params=--o:ssl.enable=false --o:ssl.termination=true
+        cap_add:
+          - MKNOD
+        expose:
+          - 9980
+        restart: unless-stopped
+        volumes:
+          - /etc/timezone:/etc/timezone:ro
+          - /etc/localtime:/etc/localtime:ro
+
+networks:
+    collabora_network:
